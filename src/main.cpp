@@ -4,17 +4,12 @@
 #include "config.h"
 #include "BLEConnection.h"
 
-
-// Timer variables
-unsigned long lastTime = 0;
-unsigned long timerDelay = 30000;
-
-BLEConnection BLE_ESP;
+BLEConnection bleEsp32 = BLEConnection();
 
 void setup() {
   // Start serial communication 
   Serial.begin(9600);
-  BLE_ESP.init();
+  bleEsp32.init();
 }
 
 void loop() 

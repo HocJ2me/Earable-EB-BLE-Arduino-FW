@@ -95,7 +95,7 @@ void BLEConnection::init()
 
 BLEConnection::BLEConnection()
 {
-    init();
+
 }
 
 BLEConnection::~BLEConnection()
