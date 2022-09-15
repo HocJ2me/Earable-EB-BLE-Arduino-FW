@@ -1,5 +1,179 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+// Arduino core @ ${ARDUINO_ESP32}/cores/esp32
+#include <Arduino.h>
+
+
+// Arduino third-party lib @ ${ARDUINO_ESP32}/libraries
+#include <SPI.h>
+#include <WiFi.h>
+
+
+// local headers
+#include "configs.h"
+#include "globals.h"
+#include "utils.h"
+#include "BLEConnection.h"
+#include "ADS1299_ESP32.h"
+
+
+// ESP-IDF SDK @ ${ESP_IDF}/components && ${ARDUINO_ESP32}/tools/sdk/include
+#include "esp_log.h"
+#include "esp_system.h"
+#include "esp_vfs_dev.h"
+#include "esp_spi_flash.h"
+#include "esp_task_wdt.h"
+#include "esp_heap_caps.h"
+#include "driver/adc.h"
+#include "driver/gpio.h"
+#include "driver/uart.h"
+#include "driver/spi_slave.h"
+#include "freertos/task.h"
+#include "freertos/FreeRTOS.h"
+
+#ifdef LOG_LOCAL_LEVEL
+    #undef LOG_LOCAL_LEVEL
+    #define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
+    // #define LOGLOCAL_LEVEL ESP_LOG_NONE
+#endif
+
+/******************************************************************************
+ * Global variables definition
+ */
+
+ADS1299 ads = ADS1299(HSPI, GPIO_CS);
+
+bool wifi_echo = WIFI_ECHO;
+
+esp_log_level_t log_level = LOG_LEVEL;
+
+const int log_level_min = 0, log_level_max = 5;
+
+uint32_t sinc_freq = 50;
+
+spi_output_data output_data = ADS_RAW;
+
+spi_slave_status slave_status = IDLE;
+
+CyclicQueue<bufftype> cq;
+
+MillisClock
+    clkts,
+    clkgen,
+    clkblink,
+    clkslavetimeout;
+
+Counter counter;
+
+const char *NAME = "Earable";
+
+const char *prompt = "Earable> ";
+
+/******************************************************************************
+ * Constants
+ */
+
+const char* const output_data_list[] = {
+    "ADS1299 Int32 Raw Wave",
+    "ADS1299 50Hz Notch Filtered Raw Wave",
+    "ESP Generated Square Wave",
+    "ESP Generated Sine Wave",
+};
+
+const char* const log_level_list[] = {
+    "SILENT", "ERROR", "WARNING", "INFO", "DEBUG", "VERBOSE",
+};
+
+const char* const wakeup_reason_list[] = {
+    "Undefined", "Undefined", "EXT0", "EXT1", 
+    "Timer", "Touchpad", "ULP", "GPIO", "UART",
+};
+
+/******************************************************************************
+ * Functions
+ */
+
+void verbose() {
+    log_level = esp_log_level_t( min((log_level + 1), log_level_max) );
+    esp_log_level_set(NAME, log_level);
+    ESP_LOGE(NAME, "Current log level: %s", log_level_list[log_level]);
+}
+
+void quiet() {
+    log_level = esp_log_level_t( max((log_level - 1), log_level_min) );
+    esp_log_level_set(NAME, log_level);
+    ESP_LOGE(NAME, "Current log level: %s", log_level_list[log_level]);
+}
+
+void clear_fifo_queue() {
+    cq.clear();
+    float bufrate = (float)(cq.len) / M_BUFFERSIZE;
+    ESP_LOGD(NAME, "ESP buffer used:  %.2f%%", bufrate * 100);
+}
+
+void version_info() {
+    esp_chip_info_t info;
+    esp_chip_info(&info);
+    ESP_LOGE(NAME, "IDF Version: %s", esp_get_idf_version());
+    ESP_LOGE(NAME, "Chip info:");
+    ESP_LOGE(NAME, "\tmodel: %s", info.model == CHIP_ESP32 ? "ESP32" : "???");
+    ESP_LOGE(NAME, "\tcores: %d", info.cores);
+    ESP_LOGE(NAME, "\tfeature: %s%s%s/%s-Flash: %d MB", 
+        info.features & CHIP_FEATURE_WIFI_BGN ? "/802.11bgn" : "",
+        info.features & CHIP_FEATURE_BLE ? "/BLE" : "",
+        info.features & CHIP_FEATURE_BT ? "/BT" : "",
+        info.features & CHIP_FEATURE_EMB_FLASH ? "Embedded" : "External",
+        spi_flash_get_chip_size() / (1024 * 1024));
+    ESP_LOGE(NAME, "\trevision number: %d", info.revision);
+    ESP_LOGE(NAME, "Firmware Version: 220913");
+    ESP_LOGE(NAME, "Project Meo - Firmware");
+    ESP_LOGE(NAME, "Designed by Earable");
+}
+
+int get_battery_level(int times) {
+    double value = 0;
+    for (int i = 0; i < times; i++) {
+        value += adc1_get_raw(ADC1_CHANNEL_5);
+    }
+    value = value / times * 0.9;  // average filter
+    double percent;
+    if (value > 3490) {
+        percent = 60.0 + (value - 3490) / 10.475;
+    }
+    else if (value > 3398) {
+        percent = 10.0 + (value - 3398) / 1.84;
+    }
+    else {
+        percent = (value - 3258) / 104.0;
+    }
+    return max(0, min((int)percent, 100));
+}
+
+void summary() {
+    char tmp[32 + 1];
+    ESP_LOGD(NAME, "Checking statusbit...");
+    itoa(ads.statusBit, tmp, 2);
+    ESP_LOGD(NAME, "Checking BIAS output...");
+    const char *bias = ads.getBias() ? "ON" : "OFF";
+    ESP_LOGD(NAME, "Checking Impedance measurement...");
+    const char *imped = ads.getImpedance() ? "ON" : "OFF";
+    ESP_LOGD(NAME, "Checking valid packets...");
+    uint32_t
+        v0 = counter.value(0),
+        v1 = counter.value(1),
+        v2 = counter.value(2);
+    float bufrate = (float)(cq.len) / M_BUFFERSIZE;
+    ESP_LOGW(NAME, "ADS data header:  0b%s", tmp);
+    ESP_LOGW(NAME, "ADS data source:  %s", ads.getDataSource());
+    ESP_LOGW(NAME, "ADS sample rate:  %d Hz", ads.getSampleRate());
+    ESP_LOGW(NAME, "ADS BIAS | IMPED: %s | %s", bias, imped);
+    ESP_LOGW(NAME, "ESP valid packet: %d / %d / %d Hz", v2, v1, v0);
+    ESP_LOGW(NAME, "ESP output data:  %s", output_data_list[output_data]);
+    ESP_LOGW(NAME, "ESP buffer used:  %.2f%%", bufrate * 100);
+    ESP_LOGW(NAME, "ESP log level:    %s", log_level_list[log_level]);
+    ESP_LOGW(NAME, "Serial to wifi:   %s", wifi_echo ? "ON" : "OFF");
+    ESP_LOGW(NAME, "Battery level:    %d%%", get_battery_level(5));
+}
 
 #endif
