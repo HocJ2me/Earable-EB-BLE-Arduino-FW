@@ -34,8 +34,8 @@
 // SPI slave parameters (send out data through SPI)
 #define PACKETSIZE       256
 #define SLAVESENDTIMEOUT 1000
-#define PIN_CS           5
-#define PIN_DRDY         4
+#define PIN_CS           GPIO_CS
+#define PIN_DRDY         GPIO_DRDY
 
 // FIFO data queue
 #define M_BUFFERSIZE     8192

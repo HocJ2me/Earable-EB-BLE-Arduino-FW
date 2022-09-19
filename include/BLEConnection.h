@@ -1,3 +1,14 @@
+#ifndef BLECONNECTION_H
+#define BLECONNECTION_H
+
+#include <iostream>
+#include <Arduino.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+#include <configs.h>
+
 #define BLE_CMD_SERVICE_UUID  "45420100-0000-ffff-ff45-415241424c45"
 #define BLE_CMD_RX_CHAR_UUID  "45420101-0000-ffff-ff45-415241424c45"
 #define BLE_CMD_RES_CHAR_UUID "45420102-0000-ffff-ff45-415241424c45"
@@ -35,21 +46,17 @@
 #define DATA_CTRL_ON                    0x01    
 
 
-#include <iostream>
-#include <Arduino.h>
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
-#include <configs.h>
 
 class BLEConnection
 {
 private:
     BLEServer *pServer;
 	BLEService *BLEServiceCMD;
+    BLEService *BLEServiceSTREAM;
 public:
     void init();
     BLEConnection(/* args */);
     ~BLEConnection();
 };
+
+#endif
