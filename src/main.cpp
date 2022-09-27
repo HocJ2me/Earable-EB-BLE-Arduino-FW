@@ -10,7 +10,7 @@ ADS1299 adsEsp32 = ADS1299();
 void setup() {
   // Start serial communication 
   Serial.begin(9600);
-  // bleEsp32.init();
+  bleEsp32.init();
   adsEsp32.init();
   adsEsp32.getDeviceID();
 
@@ -18,4 +18,5 @@ void setup() {
 
 void loop() 
 {
+  bleEsp32.loopDataStream();
 }

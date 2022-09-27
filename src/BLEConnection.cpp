@@ -50,28 +50,80 @@ class MyServerCallbacks: public BLEServerCallbacks {
 class RXCallBacks: public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
       uint8_t* rxValue = pCharacteristic->getData();
+      unsigned int rxLength = pCharacteristic->getLength();
       Serial.print("Received Value: ");
       Serial.print(*rxValue);
-      Serial.println();
+      Serial.print("  ");
+      Serial.print("Data length: ");
+      Serial.print(rxLength);
+      Serial.println("  ");
       switch (*rxValue)
       {
         case BLE_CMD_GET_FW_VER:
+          Serial.println("BLE_CMD_GET_FW_VER");
           BLEStremService_RES_Characteristic.setValue(DEVICE_HARDWARE_VERSION);
           break;
         case BLE_CMD_GET_BATTERY_LEVEL:
+          Serial.println("BLE_CMD_GET_BATTERY_LEVEL");
           BLEStremService_RES_Characteristic.setValue(DEVICE_BATTERY_LEVEL);
           break;
         case BLE_CMD_GET_SERIAL_NUMBER:
+          Serial.println("BLE_CMD_GET_SERIAL_NUMBER");
           BLEStremService_RES_Characteristic.setValue(DEVICE_SERIAL_NUMBERR);
           break;
         case BLE_CMD_GET_DEVICE_NAME:
+          Serial.println("BLE_CMD_GET_DEVICE_NAME");
           BLEStremService_RES_Characteristic.setValue(DEVICE_NAME);
           break;
         case BLE_CMD_GET_DEVICE_ID:
+          Serial.println("BLE_CMD_GET_DEVICE_ID");
           BLEStremService_RES_Characteristic.setValue(DEVICE_ID);
           break;
         case BLE_CMD_GET_UNIX_TIME:
+          Serial.println("BLE_CMD_GET_UNIX_TIME");
           BLEStremService_RES_Characteristic.setValue(DEVICE_UNIX_TIME);
+          break;
+        case BLE_CMD_DATA_STREAM_CTRL:
+          bool* setDataChannel;
+          String rxString = pCharacteristic->getValue().c_str();
+          Serial.println("BLE_CMD_DATA_STREAM_CTRL");
+          switch (rxString[1])
+          {
+          case DATA_CTRL_AFE_ID:
+            Serial.println("DATA_CTRL_AFE_ID");
+            // setDataChannel = &BLEConnection->_afeStream;
+            break;
+          case DATA_CTRL_ACCEL_ID:
+            Serial.println("DATA_CTRL_ACCEL_ID");
+            // setDataChannel = &BLEConnection->_accelStream;
+            break;
+          case DATA_CTRL_GYRO_ID:
+            Serial.println("DATA_CTRL_GYRO_ID");
+            // setDataChannel = &BLEConnection._gyroStream;
+            break;
+          case DATA_CTRL_PPG_LED_ID:
+            Serial.println("DATA_CTRL_PPG_LED_ID");
+            // setDataChannel = &BLEConnection._ppgLedStream;
+            break;
+          case DATA_CTRL_HR_SPO2_ID:
+            Serial.println("DATA_CTRL_HR_SPO2_ID");
+            // setDataChannel = &BLEConnection._hrSpo2Stream;
+            break;
+          case DATA_CTRL_BATT_ID:
+            Serial.println("DATA_CTRL_BATT_ID");
+            // setDataChannel = &BLEConnection._battStream;
+            break;
+          }
+          if(rxString[2] == DATA_CTRL_OFF)
+          {
+              Serial.println("DATA_CTRL_OFF");
+              // *setDataChannel = false;
+          }
+          if(rxString[2] == DATA_CTRL_ON)
+          {
+              Serial.println("DATA_CTRL_ON");  
+              // *setDataChannel = true;     
+          }
           break;
       }
       
@@ -79,6 +131,47 @@ class RXCallBacks: public BLECharacteristicCallbacks {
   }
 };
 
+void BLEConnection::loopDataStream()
+{
+  if(millis() - lastSendData > 50)
+  {
+      double randomValueInt  = random(100);
+      double &randomValue = randomValueInt;
+
+      if(_afeStream)
+      {
+        BLEStream_EEG_Characteristic.setValue(randomValue);
+        BLEStream_EEG_Characteristic.notify();
+      }
+      if(_accelStream)
+      {
+        BLEStream_IMU_Characteristic.setValue(randomValue);
+        BLEStream_IMU_Characteristic.notify();
+      }
+      if(_gyroStream)
+      {
+        BLEStream_GYRO_Characteristic.setValue(randomValue);
+        BLEStream_GYRO_Characteristic.notify();
+      }
+      if(_ppgLedStream)
+      {
+        BLEStream_PPG_Characteristic.setValue(randomValue);
+        BLEStream_PPG_Characteristic.notify();
+      }
+      if(_hrSpo2Stream)
+      {
+        BLEStream_BATT_Characteristic.setValue(randomValue);
+        BLEStream_BATT_Characteristic.notify();
+      }
+      if(_battStream)
+      {
+        BLEStream_EEG_Characteristic.setValue(randomValue);
+        BLEStream_EEG_Characteristic.notify();
+      }
+      lastSendData = millis();
+      
+  }
+}
 void BLEConnection::init()
 {
     // Create the BLE Device
@@ -148,7 +241,7 @@ void BLEConnection::init()
   // Start advertising
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(BLE_CMD_SERVICE_UUID);
-  pAdvertising->addServiceUUID(BLE_STREAM_SERVICE_UUID);
+  // pAdvertising->addServiceUUID(BLE_STREAM_SERVICE_UUID);
   pServer->getAdvertising()->start();
 
 

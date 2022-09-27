@@ -45,16 +45,31 @@
 #define DATA_CTRL_OFF                   0x00
 #define DATA_CTRL_ON                    0x01    
 
+#define DATA_CTRL_AFE_ID               0x01
+#define DATA_CTRL_ACCEL_ID             0x02
+#define DATA_CTRL_GYRO_ID              0x04
+#define DATA_CTRL_PPG_LED_ID           0x08
+#define DATA_CTRL_HR_SPO2_ID           0x10
+#define DATA_CTRL_BATT_ID              0x20
 
-
+#define DATA_CTRL_OFF                  0x00
+#define DATA_CTRL_ON                   0x01
 class BLEConnection
 {
 private:
     BLEServer *pServer;
 	BLEService *BLEServiceCMD;
     BLEService *BLEServiceSTREAM;
+    bool _afeStream = false;
+    bool _accelStream = false;
+    bool _gyroStream = false;
+    bool _ppgLedStream = false;
+    bool _hrSpo2Stream = false;
+    bool _battStream = false;
+    unsigned long lastSendData = 0;
 public:
     void init();
+    void loopDataStream();
     BLEConnection(/* args */);
     ~BLEConnection();
 };
