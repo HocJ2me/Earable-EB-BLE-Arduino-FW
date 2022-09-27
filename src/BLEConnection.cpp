@@ -139,17 +139,17 @@ class RXCallBacks: public BLECharacteristicCallbacks {
 
 void BLEConnection::loopDataStream()
 {
-  if(millis() - lastSendData > 5)
+  if(millis() - lastSendData > 100)
   {
       double randomValueInt  = random(100);
       double &randomValue = randomValueInt;
 
       if(_afeStream)
       {
-        afeDataConfig.numberRecord = 128;
+        afeDataConfig.numberRecord = 9; 
         afeDataConfig.numberChannel = 1;
         afeDataConfig.timestamp = millis();
-        uint8_t afeData[910];
+        uint8_t afeData[600];
         afeData[0] = afeDataConfig.numberRecord;  // number record
         afeData[1] = afeDataConfig.numberChannel; // number channel
         // 4 byte timestamp
@@ -158,24 +158,54 @@ void BLEConnection::loopDataStream()
         afeData[4] = (byte)afeDataConfig.timestamp>>16;
         afeData[5] = (byte)afeDataConfig.timestamp>>24;
         // length data
-        int afeDataLength = 1 + 1 + 4 + 6 + 127 * 7; //901
+        int afeDataLength = 1 + 1 + 4 + 6 * 3 + afeDataConfig.numberRecord * (1 + 3 * 6 ) ; //must small than 600
         //6 byte data 6 channel
         afeData[6] = byte(esp_random() % 255); // channel 1
-        afeData[7] = 0;   // channel 2
-        afeData[8] = 0;   // channel 3
-        afeData[9] = 0;   // channel 4
-        afeData[10] = 0;  // channel 5
-        afeData[11] = 0;  // channel 6
+        afeData[7] = byte(esp_random() % 255); // channel 1
+        afeData[8] = byte(esp_random() % 255); // channel 1
+        afeData[9] = 0;   // channel 2
+        afeData[10] = 0;   // channel 2
+        afeData[11] = 0;   // channel 2
+        afeData[12] = 0;   // channel 3
+        afeData[13] = 0;   // channel 3
+        afeData[14] = 0;   // channel 3
+        afeData[15] = 0;   // channel 4
+        afeData[16] = 0;   // channel 4
+        afeData[17] = 0;   // channel 4
+        afeData[18] = 0;  // channel 5
+        afeData[19] = 0;  // channel 5
+        afeData[20] = 0;  // channel 5
+        afeData[21] = 0;  // channel 6
+        afeData[22] = 0;  // channel 6
+        afeData[23] = 0;  // channel 6
         //get data
         for(int i_record=0;i_record<afeDataConfig.numberRecord-1;i_record++)
         {
-          afeData[11+i_record*7] = byte(esp_random() % 255);   //offset
-          afeData[11+i_record*7+1] = byte(esp_random() % 255); //channel 1
-          afeData[11+i_record*7+2] = 0;    //channel 2
-          afeData[11+i_record*7+3] = 0;    //channel 3
-          afeData[11+i_record*7+4] = 0;
-          afeData[11+i_record*7+5] = 0;
-          afeData[11+i_record*7+6] = 0;    //channel 6
+          afeData[24+i_record*7] = byte(esp_random() % 255);   //offset
+          
+          afeData[24+i_record*19+1] = byte(esp_random() % 255); //channel 1
+          afeData[24+i_record*19+2] = byte(esp_random() % 255); //channel 1
+          afeData[24+i_record*19+3] = byte(esp_random() % 255); //channel 1
+
+          afeData[24+i_record*19+4] = 0;    //channel 2
+          afeData[24+i_record*19+5] = 0;    //channel 2
+          afeData[24+i_record*19+6] = 0;    //channel 2
+
+          afeData[24+i_record*19+7] = 0;    //channel 3
+          afeData[24+i_record*19+8] = 0;    //channel 3
+          afeData[24+i_record*19+9] = 0;    //channel 3
+
+          afeData[24+i_record*19+10] = 0;    //channel 4
+          afeData[24+i_record*19+11] = 0;    //channel 4
+          afeData[24+i_record*19+12] = 0;    //channel 4
+
+          afeData[24+i_record*19+13] = 0;    //channel 5
+          afeData[24+i_record*19+14] = 0;    //channel 5
+          afeData[24+i_record*19+15] = 0;    //channel 5
+
+          afeData[24+i_record*19+16] = 0;    //channel 6
+          afeData[24+i_record*19+17] = 0;    //channel 6
+          afeData[24+i_record*19+18] = 0;    //channel 6
         }
         BLEStream_EEG_Characteristic.setValue(afeData, afeDataLength);
         BLEStream_EEG_Characteristic.notify();

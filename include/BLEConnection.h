@@ -55,7 +55,7 @@
 #define DATA_CTRL_OFF                  0x00
 #define DATA_CTRL_ON                   0x01
 
-// #define USING_BLE_SERVER_CMD
+#define USING_BLE_SERVER_CMD
 #define USING_BLE_SERVER_STREAM
 
 struct afeDataStruct
