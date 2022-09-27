@@ -18,5 +18,5 @@ void setup() {
 
 void loop() 
 {
-  bleEsp32.loopDataStream();
+  // bleEsp32.loopDataStream();
 }

@@ -15,7 +15,7 @@ BLECharacteristic BLEStremService_HDL_Characteristic(BLE_EER_HDL_CHAR_UUID, BLEC
 BLEDescriptor BLEStremService_HDL_Descriptor(BLEUUID((uint16_t)0x2902));
 
 // BLE_STREAM_SERVICE_UUID
-BLECharacteristic BLEStream_EEG_Characteristic(BLE_EEG_STREAM_CHAR_UUID, BLECharacteristic::PROPERTY_WRITE);
+BLECharacteristic BLEStream_EEG_Characteristic(BLE_EEG_STREAM_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
 BLEDescriptor BLEStream_EEG_Descriptor(BLEUUID((uint16_t)0x2902));
 
 BLECharacteristic BLEStream_IMU_Characteristic(BLE_IMU_STREAM_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
@@ -24,7 +24,7 @@ BLEDescriptor BLEStream_IMU_Descriptor(BLEUUID((uint16_t)0x2902));
 BLECharacteristic BLEStream_PPG_Characteristic(BLE_PPG_STREAM_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
 BLEDescriptor BLEStream_PPG_Descriptor(BLEUUID((uint16_t)0x2902));
 
-BLECharacteristic BLEStream_HR_Characteristic(BLE_HR_STREAM_CHAR_UUID, BLECharacteristic::PROPERTY_WRITE);
+BLECharacteristic BLEStream_HR_Characteristic(BLE_HR_STREAM_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
 BLEDescriptor BLEStream_HR_Descriptor(BLEUUID((uint16_t)0x2902));
 
 BLECharacteristic BLEStream_SPO2_Characteristic(BLE_SPO2_STREAM_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
@@ -133,7 +133,7 @@ class RXCallBacks: public BLECharacteristicCallbacks {
 
 void BLEConnection::loopDataStream()
 {
-  if(millis() - lastSendData > 50)
+  if(millis() - lastSendData > 5)
   {
       double randomValueInt  = random(100);
       double &randomValue = randomValueInt;
@@ -160,13 +160,15 @@ void BLEConnection::loopDataStream()
       }
       if(_hrSpo2Stream)
       {
-        BLEStream_BATT_Characteristic.setValue(randomValue);
-        BLEStream_BATT_Characteristic.notify();
+        BLEStream_HR_Characteristic.setValue(randomValue);
+        BLEStream_HR_Characteristic.notify();
+        BLEStream_SPO2_Characteristic.setValue(randomValue);
+        BLEStream_SPO2_Characteristic.notify();
       }
       if(_battStream)
       {
-        BLEStream_EEG_Characteristic.setValue(randomValue);
-        BLEStream_EEG_Characteristic.notify();
+        BLEStream_BATT_Characteristic.setValue(randomValue);
+        BLEStream_BATT_Characteristic.notify();
       }
       lastSendData = millis();
       
@@ -178,11 +180,11 @@ void BLEConnection::init()
   BLEDevice::init(DeviceName);
 
   // Create the BLE Server
-  pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new MyServerCallbacks());
+  pServerCMD = BLEDevice::createServer();
+  pServerCMD->setCallbacks(new MyServerCallbacks());
 
   // Create the BLE Service
-  BLEServiceCMD = pServer->createService(BLE_CMD_SERVICE_UUID);
+  BLEServiceCMD = pServerCMD->createService(BLEUUID(BLE_CMD_SERVICE_UUID), 2000, 1);
   // Create BLE Characteristics and Create a BLE Descriptor
 
   BLEServiceCMD->addCharacteristic(&BLEStremService_RX_Characteristic);
@@ -201,10 +203,10 @@ void BLEConnection::init()
   // Start the service
   BLEServiceCMD->start();
 
-  // Create the BLE Service
-  pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new MyServerCallbacks());
-  BLEServiceSTREAM = pServer->createService(BLE_STREAM_SERVICE_UUID);
+
+  pServerSTREAM = BLEDevice::createServer();
+
+  BLEServiceSTREAM = pServerSTREAM->createService(BLEUUID(BLE_STREAM_SERVICE_UUID), 2000, 2);
   // Create BLE Characteristics and Create a BLE Descriptor
 
   BLEServiceSTREAM->addCharacteristic(&BLEStream_EEG_Characteristic);
@@ -239,10 +241,16 @@ void BLEConnection::init()
   BLEServiceSTREAM->start();
 
   // Start advertising
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(BLE_CMD_SERVICE_UUID);
+  BLEAdvertising *pAdvertisingCMD = BLEDevice::getAdvertising();
+  pAdvertisingCMD->addServiceUUID(BLE_CMD_SERVICE_UUID);
   // pAdvertising->addServiceUUID(BLE_STREAM_SERVICE_UUID);
-  pServer->getAdvertising()->start();
+  pServerCMD->getAdvertising()->start();
+
+  BLEAdvertising *pAdvertisingStream = BLEDevice::getAdvertising();
+  // pAdvertisingCMD->addServiceUUID(BLE_CMD_SERVICE_UUID);
+  pAdvertisingStream->addServiceUUID(BLE_STREAM_SERVICE_UUID);
+  pServerSTREAM->getAdvertising()->start();
+
 
 
   Serial.println("Waiting a client connection to notify...");

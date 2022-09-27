@@ -57,7 +57,8 @@
 class BLEConnection
 {
 private:
-    BLEServer *pServer;
+    BLEServer *pServerCMD;
+    BLEServer *pServerSTREAM;
 	BLEService *BLEServiceCMD;
     BLEService *BLEServiceSTREAM;
     bool _afeStream = false;
