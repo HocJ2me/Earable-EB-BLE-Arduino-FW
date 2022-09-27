@@ -54,6 +54,17 @@
 
 #define DATA_CTRL_OFF                  0x00
 #define DATA_CTRL_ON                   0x01
+
+// #define USING_BLE_SERVER_CMD
+#define USING_BLE_SERVER_STREAM
+
+struct afeDataStruct
+{
+    uint8_t numberRecord;
+    uint8_t numberChannel;
+    unsigned long timestamp;
+} ;
+
 class BLEConnection
 {
 private:
@@ -61,7 +72,7 @@ private:
     BLEServer *pServerSTREAM;
 	BLEService *BLEServiceCMD;
     BLEService *BLEServiceSTREAM;
-    bool _afeStream = false;
+    bool _afeStream = true;
     bool _accelStream = false;
     bool _gyroStream = false;
     bool _ppgLedStream = false;
@@ -69,6 +80,7 @@ private:
     bool _battStream = false;
     unsigned long lastSendData = 0;
 public:
+    afeDataStruct afeDataConfig;
     void init();
     void loopDataStream();
     BLEConnection(/* args */);

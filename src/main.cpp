@@ -1,6 +1,5 @@
 #include <Arduino.h>
 
-
 #include "config.h"
 #include "BLEConnection.h"
 #include "ADS1299Driver.h"
@@ -10,6 +9,8 @@ ADS1299 adsEsp32 = ADS1299();
 void setup() {
   // Start serial communication 
   Serial.begin(9600);
+  // Start RTC timer
+
   bleEsp32.init();
   adsEsp32.init();
   adsEsp32.getDeviceID();
@@ -18,5 +19,5 @@ void setup() {
 
 void loop() 
 {
-  // bleEsp32.loopDataStream();
+  bleEsp32.loopDataStream();
 }

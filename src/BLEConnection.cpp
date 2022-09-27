@@ -3,7 +3,7 @@
 
 bool deviceConnected = false;
 
-
+#ifdef USING_BLE_SERVER_CMD
 // BLE_CMD_SERVICE_UUID
 BLECharacteristic BLEStremService_RX_Characteristic(BLE_CMD_RX_CHAR_UUID, BLECharacteristic::PROPERTY_WRITE);
 BLEDescriptor BLEStremService_RX_Descriptor(BLEUUID((uint16_t)0x2902));
@@ -13,7 +13,9 @@ BLEDescriptor BLEStremService_RES_Descriptor(BLEUUID((uint16_t)0x2902));
 
 BLECharacteristic BLEStremService_HDL_Characteristic(BLE_EER_HDL_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
 BLEDescriptor BLEStremService_HDL_Descriptor(BLEUUID((uint16_t)0x2902));
+#endif
 
+#ifdef USING_BLE_SERVER_STREAM
 // BLE_STREAM_SERVICE_UUID
 BLECharacteristic BLEStream_EEG_Characteristic(BLE_EEG_STREAM_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
 BLEDescriptor BLEStream_EEG_Descriptor(BLEUUID((uint16_t)0x2902));
@@ -35,7 +37,7 @@ BLEDescriptor BLEStream_BATT_Descriptor(BLEUUID((uint16_t)0x2902));
 
 BLECharacteristic BLEStream_GYRO_Characteristic(BLE_GYRO_STREAM_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
 BLEDescriptor BLEStream_GYRO_Descriptor(BLEUUID((uint16_t)0x2902));
-
+#endif
 
 //Setup callbacks onConnect and onDisconnect
 class MyServerCallbacks: public BLEServerCallbacks {
@@ -57,6 +59,8 @@ class RXCallBacks: public BLECharacteristicCallbacks {
       Serial.print("Data length: ");
       Serial.print(rxLength);
       Serial.println("  ");
+#ifdef USING_BLE_SERVER_CMD
+
       switch (*rxValue)
       {
         case BLE_CMD_GET_FW_VER:
@@ -128,6 +132,8 @@ class RXCallBacks: public BLECharacteristicCallbacks {
       }
       
       BLEStremService_RES_Characteristic.notify();
+#endif
+
   }
 };
 
@@ -140,7 +146,38 @@ void BLEConnection::loopDataStream()
 
       if(_afeStream)
       {
-        BLEStream_EEG_Characteristic.setValue(randomValue);
+        afeDataConfig.numberRecord = 128;
+        afeDataConfig.numberChannel = 1;
+        afeDataConfig.timestamp = millis();
+        uint8_t afeData[910];
+        afeData[0] = afeDataConfig.numberRecord;  // number record
+        afeData[1] = afeDataConfig.numberChannel; // number channel
+        // 4 byte timestamp
+        afeData[2] = (byte)afeDataConfig.timestamp;
+        afeData[3] = (byte)afeDataConfig.timestamp>>8;
+        afeData[4] = (byte)afeDataConfig.timestamp>>16;
+        afeData[5] = (byte)afeDataConfig.timestamp>>24;
+        // length data
+        int afeDataLength = 1 + 1 + 4 + 6 + 127 * 7; //901
+        //6 byte data 6 channel
+        afeData[6] = byte(esp_random() % 255); // channel 1
+        afeData[7] = 0;   // channel 2
+        afeData[8] = 0;   // channel 3
+        afeData[9] = 0;   // channel 4
+        afeData[10] = 0;  // channel 5
+        afeData[11] = 0;  // channel 6
+        //get data
+        for(int i_record=0;i_record<afeDataConfig.numberRecord-1;i_record++)
+        {
+          afeData[11+i_record*7] = byte(esp_random() % 255);   //offset
+          afeData[11+i_record*7+1] = byte(esp_random() % 255); //channel 1
+          afeData[11+i_record*7+2] = 0;    //channel 2
+          afeData[11+i_record*7+3] = 0;    //channel 3
+          afeData[11+i_record*7+4] = 0;
+          afeData[11+i_record*7+5] = 0;
+          afeData[11+i_record*7+6] = 0;    //channel 6
+        }
+        BLEStream_EEG_Characteristic.setValue(afeData, afeDataLength);
         BLEStream_EEG_Characteristic.notify();
       }
       if(_accelStream)
@@ -181,10 +218,12 @@ void BLEConnection::init()
 
   // Create the BLE Server
   pServerCMD = BLEDevice::createServer();
-  pServerCMD->setCallbacks(new MyServerCallbacks());
+  // pServerCMD->setCallbacks(new MyServerCallbacks());
+
+#ifdef USING_BLE_SERVER_CMD
 
   // Create the BLE Service
-  BLEServiceCMD = pServerCMD->createService(BLEUUID(BLE_CMD_SERVICE_UUID), 2000, 1);
+  BLEServiceCMD = pServerCMD->createService(BLEUUID(BLE_CMD_SERVICE_UUID), 200, 1);
   // Create BLE Characteristics and Create a BLE Descriptor
 
   BLEServiceCMD->addCharacteristic(&BLEStremService_RX_Characteristic);
@@ -202,11 +241,13 @@ void BLEConnection::init()
 
   // Start the service
   BLEServiceCMD->start();
+#endif
 
+#ifdef USING_BLE_SERVER_STREAM
 
   pServerSTREAM = BLEDevice::createServer();
 
-  BLEServiceSTREAM = pServerSTREAM->createService(BLEUUID(BLE_STREAM_SERVICE_UUID), 2000, 2);
+  BLEServiceSTREAM = pServerSTREAM->createService(BLEUUID(BLE_STREAM_SERVICE_UUID), 200, 2);
   // Create BLE Characteristics and Create a BLE Descriptor
 
   BLEServiceSTREAM->addCharacteristic(&BLEStream_EEG_Characteristic);
@@ -239,18 +280,22 @@ void BLEConnection::init()
 
   // Start the service
   BLEServiceSTREAM->start();
+#endif
 
+#ifdef USING_BLE_SERVER_CMD
   // Start advertising
-  BLEAdvertising *pAdvertisingCMD = BLEDevice::getAdvertising();
+  BLEAdvertising *pAdvertisingCMD = pServerCMD->getAdvertising();
   pAdvertisingCMD->addServiceUUID(BLE_CMD_SERVICE_UUID);
   // pAdvertising->addServiceUUID(BLE_STREAM_SERVICE_UUID);
   pServerCMD->getAdvertising()->start();
+#endif
 
-  BLEAdvertising *pAdvertisingStream = BLEDevice::getAdvertising();
+#ifdef USING_BLE_SERVER_STREAM
+  BLEAdvertising *pAdvertisingStream = pServerSTREAM->getAdvertising();
   // pAdvertisingCMD->addServiceUUID(BLE_CMD_SERVICE_UUID);
   pAdvertisingStream->addServiceUUID(BLE_STREAM_SERVICE_UUID);
   pServerSTREAM->getAdvertising()->start();
-
+#endif
 
 
   Serial.println("Waiting a client connection to notify...");
