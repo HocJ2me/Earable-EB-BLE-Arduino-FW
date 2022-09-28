@@ -147,7 +147,7 @@ void BLEConnection::loopDataStream()
       if(_afeStream)
       {
         afeDataConfig.numberRecord = 9; 
-        afeDataConfig.numberChannel = 1;
+        afeDataConfig.numberChannel = 6;
         afeDataConfig.timestamp = millis();
         uint8_t afeData[600];
         afeData[0] = afeDataConfig.numberRecord;  // number record
@@ -158,7 +158,7 @@ void BLEConnection::loopDataStream()
         afeData[4] = (byte)afeDataConfig.timestamp>>16;
         afeData[5] = (byte)afeDataConfig.timestamp>>24;
         // length data
-        int afeDataLength = 1 + 1 + 4 + 6 * 3 + afeDataConfig.numberRecord * (1 + 3 * 6 ) ; //must small than 600
+        int afeDataLength = 1 + 1 + 4 + 6 * 3 + (afeDataConfig.numberRecord-1) * (1 + 3 * 6 ) ; //must small than 600
         //6 byte data 6 channel
         afeData[6] = byte(esp_random() % 255); // channel 1
         afeData[7] = byte(esp_random() % 255); // channel 1
@@ -181,7 +181,7 @@ void BLEConnection::loopDataStream()
         //get data
         for(int i_record=0;i_record<afeDataConfig.numberRecord-1;i_record++)
         {
-          afeData[24+i_record*7] = byte(esp_random() % 255);   //offset
+          afeData[24+i_record*19] = 1;   //offset
           
           afeData[24+i_record*19+1] = byte(esp_random() % 255); //channel 1
           afeData[24+i_record*19+2] = byte(esp_random() % 255); //channel 1
