@@ -82,7 +82,7 @@ private:
 public:
     afeDataStruct afeDataConfig;
     void init();
-    void loopDataStream();
+    void loopDataStream(long **_data);
     BLEConnection(/* args */);
     ~BLEConnection();
 };

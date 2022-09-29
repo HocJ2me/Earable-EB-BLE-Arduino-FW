@@ -137,9 +137,9 @@ class RXCallBacks: public BLECharacteristicCallbacks {
   }
 };
 
-void BLEConnection::loopDataStream()
+void BLEConnection::loopDataStream(long **_data)
 {
-  if(millis() - lastSendData > 100)
+  // if(millis() - lastSendData > 100)
   {
       double randomValueInt  = random(100);
       double &randomValue = randomValueInt;
@@ -148,56 +148,64 @@ void BLEConnection::loopDataStream()
       {
         afeDataConfig.numberRecord = 9; 
         afeDataConfig.numberChannel = 6;
-        afeDataConfig.timestamp = millis();
-        uint8_t afeData[600];
-        afeData[0] = afeDataConfig.numberRecord;  // number record
-        afeData[1] = afeDataConfig.numberChannel; // number channel
+        afeDataConfig.timestamp = millis() + 1664439458000;
+        uint8_t afeData[300];
+        afeData[0] = (byte)afeDataConfig.numberRecord;  // number record
+        afeData[1] = (byte)afeDataConfig.numberChannel; // number channel
         // 4 byte timestamp
-        afeData[2] = (byte)afeDataConfig.timestamp;
-        afeData[3] = (byte)afeDataConfig.timestamp>>8;
-        afeData[4] = (byte)afeDataConfig.timestamp>>16;
-        afeData[5] = (byte)afeDataConfig.timestamp>>24;
+        long temp = afeDataConfig.timestamp;
+        afeData[5] = (byte)(temp);
+        afeData[4] = (byte)(temp>>8);
+        afeData[3] = (byte)(temp>>16);
+        afeData[2] = (byte)(temp>>24);
         // length data
         int afeDataLength = 1 + 1 + 4 + 6 * 3 + (afeDataConfig.numberRecord-1) * (1 + 3 * 6 ) ; //must small than 600
         //6 byte data 6 channel
-        afeData[6] = byte(esp_random() % 255); // channel 1
-        afeData[7] = byte(esp_random() % 255); // channel 1
-        afeData[8] = byte(esp_random() % 255); // channel 1
-        afeData[9] = 0;   // channel 2
-        afeData[10] = 0;   // channel 2
-        afeData[11] = 0;   // channel 2
-        afeData[12] = 0;   // channel 3
-        afeData[13] = 0;   // channel 3
-        afeData[14] = 0;   // channel 3
-        afeData[15] = 0;   // channel 4
-        afeData[16] = 0;   // channel 4
-        afeData[17] = 0;   // channel 4
+
+        temp = _data[0][1];
+        afeData[8] = (byte)temp;// channel 1
+        afeData[7] = (byte)(temp>>8); // channel 1
+        afeData[6] = (byte)(temp>>16); // channel 1
+
+        afeData[11] = (byte)(_data[0][2]);  // channel 2
+        afeData[10] = (byte)(_data[0][2]>>8);   // channel 2
+        afeData[9] = (byte)(_data[0][2]>>16);   // channel 2
+
+        afeData[14] = (byte)(_data[0][3]);  // channel 3
+        afeData[13] = (byte)(_data[0][3]>>8);   // channel 3
+        afeData[12] = (byte)(_data[0][3]>>16);   // channel 3
+
+        afeData[17] = (byte)(_data[0][4]);  // channel 4
+        afeData[16] = (byte)(_data[0][4]>>8);   // channel 4
+        afeData[15] = (byte)(_data[0][4]>>16);   // channel 4
+
         afeData[18] = 0;  // channel 5
         afeData[19] = 0;  // channel 5
         afeData[20] = 0;  // channel 5
+
         afeData[21] = 0;  // channel 6
         afeData[22] = 0;  // channel 6
         afeData[23] = 0;  // channel 6
         //get data
         for(int i_record=0;i_record<afeDataConfig.numberRecord-1;i_record++)
         {
-          afeData[24+i_record*19] = 1;   //offset
+          afeData[24+i_record*19] = 0;   //offset
           
-          afeData[24+i_record*19+1] = byte(esp_random() % 255); //channel 1
-          afeData[24+i_record*19+2] = byte(esp_random() % 255); //channel 1
-          afeData[24+i_record*19+3] = byte(esp_random() % 255); //channel 1
+          afeData[24+i_record*19+3] = (byte)(_data[i_record+1][1]);//channel 1
+          afeData[24+i_record*19+2] = (byte)(_data[i_record+1][1]>>8); //channel 1
+          afeData[24+i_record*19+1] = (byte)(_data[i_record+1][1]>>16); //channel 1
 
-          afeData[24+i_record*19+4] = 0;    //channel 2
-          afeData[24+i_record*19+5] = 0;    //channel 2
-          afeData[24+i_record*19+6] = 0;    //channel 2
+          afeData[24+i_record*19+6] = (byte)(_data[i_record+1][2]);   //channel 2
+          afeData[24+i_record*19+5] = (byte)(_data[i_record+1][2]>>8);    //channel 2
+          afeData[24+i_record*19+4] = (byte)(_data[i_record+1][2]>>16);    //channel 2
 
-          afeData[24+i_record*19+7] = 0;    //channel 3
-          afeData[24+i_record*19+8] = 0;    //channel 3
-          afeData[24+i_record*19+9] = 0;    //channel 3
+          afeData[24+i_record*19+9] = (byte)(_data[i_record+1][3]);   //channel 3
+          afeData[24+i_record*19+8] = (byte)(_data[i_record+1][3]>>8);    //channel 3
+          afeData[24+i_record*19+7] = (byte)(_data[i_record+1][3]>>16);    //channel 3
 
-          afeData[24+i_record*19+10] = 0;    //channel 4
-          afeData[24+i_record*19+11] = 0;    //channel 4
-          afeData[24+i_record*19+12] = 0;    //channel 4
+          afeData[24+i_record*19+12] = (byte)(_data[i_record+1][4]);   //channel 4
+          afeData[24+i_record*19+11] = (byte)(_data[i_record+1][4]>>8);    //channel 4
+          afeData[24+i_record*19+10] = (byte)(_data[i_record+1][4]>>16);    //channel 4
 
           afeData[24+i_record*19+13] = 0;    //channel 5
           afeData[24+i_record*19+14] = 0;    //channel 5
