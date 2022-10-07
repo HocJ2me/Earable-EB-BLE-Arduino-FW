@@ -45,6 +45,7 @@ class MyServerCallbacks: public BLEServerCallbacks {
     deviceConnected = true;
   };
   void onDisconnect(BLEServer* pServer) {
+    // ESP.restart();
     deviceConnected = false;
   };
 };
@@ -148,11 +149,12 @@ void BLEConnection::loopDataStream(long **_data)
       {
         afeDataConfig.numberRecord = 9; 
         afeDataConfig.numberChannel = 6;
-        afeDataConfig.timestamp = millis() + 1664439458000;
+        afeDataConfig.timestamp = (long)(_data[0][5] / 1000) + TIMESTAMP_IN_DAY_WHEN_I_AM_UPLOADING;
         uint8_t afeData[300];
-        afeData[0] = (byte)afeDataConfig.numberRecord;  // number record
+        afeData[0] = sequence_number;  // number record
         afeData[1] = (byte)afeDataConfig.numberChannel; // number channel
         // 4 byte timestamp
+        
         long temp = afeDataConfig.timestamp;
         afeData[5] = (byte)(temp);
         afeData[4] = (byte)(temp>>8);
@@ -189,7 +191,10 @@ void BLEConnection::loopDataStream(long **_data)
         //get data
         for(int i_record=0;i_record<afeDataConfig.numberRecord-1;i_record++)
         {
-          afeData[24+i_record*19] = 0;   //offset
+          afeData[24+i_record*19] = (byte)( 
+                                            (long)(_data[i_record][5] / 1000) + TIMESTAMP_IN_DAY_WHEN_I_AM_UPLOADING 
+                                            - afeDataConfig.timestamp
+                                          );   //offset
           
           afeData[24+i_record*19+3] = (byte)(_data[i_record+1][1]);//channel 1
           afeData[24+i_record*19+2] = (byte)(_data[i_record+1][1]>>8); //channel 1
@@ -215,6 +220,8 @@ void BLEConnection::loopDataStream(long **_data)
           afeData[24+i_record*19+17] = 0;    //channel 6
           afeData[24+i_record*19+18] = 0;    //channel 6
         }
+        if(sequence_number == 255) sequence_number = 0;
+        else                       sequence_number++;
         BLEStream_EEG_Characteristic.setValue(afeData, afeDataLength);
         BLEStream_EEG_Characteristic.notify();
       }
@@ -251,6 +258,7 @@ void BLEConnection::loopDataStream(long **_data)
 }
 void BLEConnection::init()
 {
+  afeDataConfig.numberRecord = 0;
     // Create the BLE Device
   BLEDevice::init(DeviceName);
 

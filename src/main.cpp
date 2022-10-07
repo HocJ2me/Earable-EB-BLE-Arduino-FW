@@ -1,3 +1,6 @@
+//check pakage
+//check sample rate lose
+// check decode
 #include <Arduino.h>
 
 #include "config.h"
@@ -6,26 +9,39 @@
 
 BLEConnection bleEsp32 = BLEConnection();
 ADS1299 ads1299 = ADS1299();
+bool dataReady = false;
+
+void IRAM_ATTR isr()
+{
+  dataReady = true;
+}
+
 void setup() {
   // Start serial communication 
   Serial.begin(9600);
   bleEsp32.init();
   ads1299.init();
   ads1299.getDeviceID();
+  attachInterrupt(digitalPinToInterrupt(27), isr, FALLING);
 
 }
 boolean deviceIDReturned = false;
 boolean startedLogging = false;
+unsigned long numberOfSample = 0;
+unsigned long lastNumberOfSample = 0;
+unsigned long lastPrintNumberOfSample = 0;
 void loop() 
 {
   
-  if(deviceIDReturned == false){
-    
-    ads1299.getDeviceID(); //Funciton to return Device ID
+  if(deviceIDReturned == false)
+  {
+    //Funciton to return Device ID
+    ads1299.getDeviceID(); 
     
     //prints dashed line to separate serial print sections
     Serial.println("----------------------------------------------");
     
+    //STOP STREAMING DATA
     ads1299.spiCommand(_SDATAC);
     
     //Read ADS1299 Register at address 0x00 (see Datasheet pg. 35 for more info on SPI commands)
@@ -69,10 +85,11 @@ void loop()
         ads1299.activeChannel(i+1, true);
     }
 
-    //Repeat PRINT ALL REGISTERS to verify that WREG changed the CONFIG1 register
+    //Repeat PRINT ALL REGISTERS to verify that WREG changed the  registers
     ads1299.RREG(0x00, 0x17);
     Serial.println("----------------------------------------------");
     
+    //Contunue Streamming
     ads1299.spiCommand(_RDATAC);
 
     //Start data conversions command
@@ -81,7 +98,8 @@ void loop()
   }
   
   //print data to the serial console for only the 1st 10seconds of 
-  while(millis()<60 * 1000){
+  while(millis()< 5 * 60 * 1000)
+  {
     if(startedLogging == false){
       Serial.print("Millis: "); //this is to see at what time the data starts printing to check for timing accuracy (default sample rate is 250 sample/second)
       Serial.println(millis());
@@ -91,19 +109,32 @@ void loop()
     //Print Read Data Continuous (RDATAC) to Ardiuno serial monitor... 
     //The timing of this method is not perfect yet. Some data is getting lost 
     //and I believe its due to the serial monitor taking too much time to print data and not being ready to recieve to packets
-    ads1299.updateData();
-    if(ads1299.isAvailableData())
+    if(dataReady == true)
     {
-      long **rawAdsData = ads1299.dataExport();
-      // Serial.println("Raw data:");
-      // for(int i=0;i<5;i++)
-      // {
-      //   Serial.print(rawAdsData[0][i], HEX);
-      //   Serial.print(",");
-      // }
-      // Serial.println();
-      bleEsp32.loopDataStream(rawAdsData);
-    }  
+      dataReady = false;
+      if(ads1299.updateData())
+      {
+        numberOfSample ++;
+        if(numberOfSample % 9 == 0)
+        {
+          long **rawAdsData = ads1299.dataExport();
+          bleEsp32.loopDataStream(rawAdsData);
+        //   // Serial.println("Raw data:");
+        //   // for(int i=0;i<5;i++)
+        //   // {
+        //   //   Serial.print(rawAdsData[0][i], HEX);
+        //   //   Serial.print(",");
+        //   // }
+        //   // Serial.println();
+        }
+      }  
+    }
+    // if(millis() - lastPrintNumberOfSample  > 1000)
+    // {
+    //     Serial.println(numberOfSample - lastNumberOfSample);
+    //     lastNumberOfSample = numberOfSample;
+    //     lastPrintNumberOfSample = millis();
+    // }
   }
   
-  }
+}

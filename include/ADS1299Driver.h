@@ -25,6 +25,8 @@ typedef enum
 #define AFE_VREF_uV             4500000
 #define AFE_DEFAULT_CONFIG_GAIN         AFE_GAIN_6
 
+// #define DISPLAY_DATA_WHILE_STREAMING
+
 
 class ADS1299 {
     private:
@@ -47,7 +49,7 @@ class ADS1299 {
         void SPI_csSetLow();
         void SPI_csSetHigh();
         byte SPI_xfer(byte);
-        void updateData();
+        bool updateData();
 
 
         void activeChannel(int channel, bool en);

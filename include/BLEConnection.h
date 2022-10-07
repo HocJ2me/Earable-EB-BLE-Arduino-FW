@@ -55,6 +55,8 @@
 #define DATA_CTRL_OFF                  0x00
 #define DATA_CTRL_ON                   0x01
 
+#define TIMESTAMP_IN_DAY_WHEN_I_AM_UPLOADING 1664522887
+
 #define USING_BLE_SERVER_CMD
 #define USING_BLE_SERVER_STREAM
 
@@ -80,6 +82,7 @@ private:
     bool _battStream = false;
     unsigned long lastSendData = 0;
 public:
+    uint8_t sequence_number = 0;
     afeDataStruct afeDataConfig;
     void init();
     void loopDataStream(long **_data);

@@ -141,8 +141,10 @@ void ADS1299::getDeviceID()
   // Serial.println(_byteName, HEX);
 }
 
-void ADS1299::updateData(){
-    if(digitalRead(GPIO_DRDY) == LOW){
+bool ADS1299::updateData()
+{
+    if(digitalRead(GPIO_DRDY) == LOW)
+    {
         SPI_csSetLow();
         long output[5] = {0}; // 4 channel and 1 is status bit, 5*3 = 15 byte
         long dataPacket = 0;    // data Packet for storage
@@ -171,9 +173,11 @@ void ADS1299::updateData(){
                 output[i] = dataPacket;
             }
             outputData[outputCount][i] = output[i];
+            outputData[outputCount][5] = millis();
             dataPacket = 0;
         }
         SPI_csSetHigh();
+#ifdef DISPLAY_DATA_WHILE_STREAMING
         Serial.print(outputCount); 
         Serial.print(", ");
         for (int i=0;i<5; i++) {
@@ -183,12 +187,15 @@ void ADS1299::updateData(){
         }
         Serial.println();
         Serial.println();
+#endif
         outputCount++;
         if(outputCount > 9)
         {
             outputCount = 0;
         }
+        return true;
     }
+    return false;
 }
 void ADS1299::activeChannel(int channel, bool en)
 {
