@@ -140,10 +140,6 @@ class RXCallBacks: public BLECharacteristicCallbacks {
 
 void BLEConnection::loopDataStream(long **_data)
 {
-  // if(millis() - lastSendData > 100)
-  {
-      double randomValueInt  = random(100);
-      double &randomValue = randomValueInt;
 
       if(_afeStream)
       {
@@ -225,40 +221,10 @@ void BLEConnection::loopDataStream(long **_data)
         BLEStream_EEG_Characteristic.setValue(afeData, afeDataLength);
         BLEStream_EEG_Characteristic.notify();
       }
-      if(_accelStream)
-      {
-        BLEStream_IMU_Characteristic.setValue(randomValue);
-        BLEStream_IMU_Characteristic.notify();
-      }
-      if(_gyroStream)
-      {
-        BLEStream_GYRO_Characteristic.setValue(randomValue);
-        BLEStream_GYRO_Characteristic.notify();
-      }
-      if(_ppgLedStream)
-      {
-        BLEStream_PPG_Characteristic.setValue(randomValue);
-        BLEStream_PPG_Characteristic.notify();
-      }
-      if(_hrSpo2Stream)
-      {
-        BLEStream_HR_Characteristic.setValue(randomValue);
-        BLEStream_HR_Characteristic.notify();
-        BLEStream_SPO2_Characteristic.setValue(randomValue);
-        BLEStream_SPO2_Characteristic.notify();
-      }
-      if(_battStream)
-      {
-        BLEStream_BATT_Characteristic.setValue(randomValue);
-        BLEStream_BATT_Characteristic.notify();
-      }
-      lastSendData = millis();
-      
-  }
 }
+
 void BLEConnection::init()
 {
-  afeDataConfig.numberRecord = 0;
     // Create the BLE Device
   BLEDevice::init(DeviceName);
 

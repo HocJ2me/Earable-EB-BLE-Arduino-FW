@@ -75,11 +75,6 @@ private:
 	BLEService *BLEServiceCMD;
     BLEService *BLEServiceSTREAM;
     bool _afeStream = true;
-    bool _accelStream = false;
-    bool _gyroStream = false;
-    bool _ppgLedStream = false;
-    bool _hrSpo2Stream = false;
-    bool _battStream = false;
     unsigned long lastSendData = 0;
 public:
     uint8_t sequence_number = 0;

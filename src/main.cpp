@@ -22,7 +22,7 @@ void setup() {
   bleEsp32.init();
   ads1299.init();
   ads1299.getDeviceID();
-  attachInterrupt(digitalPinToInterrupt(27), isr, FALLING);
+  attachInterrupt(digitalPinToInterrupt(GPIO_DRDY), isr, FALLING);
 
 }
 boolean deviceIDReturned = false;
