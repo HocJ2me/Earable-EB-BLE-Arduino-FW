@@ -189,7 +189,7 @@ bool ADS1299::updateData()
         Serial.println();
 #endif
         outputCount++;
-        if(outputCount > 9)
+        if(outputCount >= 9)
         {
             outputCount = 0;
         }

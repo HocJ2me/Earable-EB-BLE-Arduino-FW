@@ -32,6 +32,7 @@ class ADS1299 {
     private:
         SPIClass * vspi = NULL;
     public:
+        unsigned long testData = 0;
         int outputCount = 0;
         long **outputData;
         float afe_lsb_value = 0;

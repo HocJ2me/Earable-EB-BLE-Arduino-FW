@@ -192,7 +192,7 @@ void BLEConnection::loopDataStream(long **_data)
         for(int i_record=0;i_record<afeDataConfig.numberRecord-1;i_record++)
         {
           afeData[24+i_record*19] = (byte)( 
-                                            (long)(_data[i_record][5] / 1000) + TIMESTAMP_IN_DAY_WHEN_I_AM_UPLOADING 
+                                            (long)(_data[i_record+1][5] / 1000) + TIMESTAMP_IN_DAY_WHEN_I_AM_UPLOADING 
                                             - afeDataConfig.timestamp
                                           );   //offset
           

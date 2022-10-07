@@ -9,7 +9,7 @@
 
 BLEConnection bleEsp32 = BLEConnection();
 ADS1299 ads1299 = ADS1299();
-bool dataReady = false;
+volatile bool dataReady = false;
 
 void IRAM_ATTR isr()
 {
